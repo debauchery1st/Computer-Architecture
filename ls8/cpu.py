@@ -3,23 +3,72 @@
 import sys
 
 
+NOP = 0b00000000  # NO OP
+# load "immediate", store a value in a register OR set this register to this value
+LDI = 0b10000010
+HLT = 0b00000001  # halt the CPU and exit the emulator
+PRN = 0b01000111  # print the numeric value stored in a register
+LD = 0b10000011
+ST = 0b10000100
+PUSH = 0b01000101
+POP = 0b01000110
+PRA = 0b01001000
+
+
+# ALU ops
+ADD = 0b10100000
+SUB = 0b10100001
+MUL = 0b10100010
+MOD = 0b10100100
+INC = 0b01100101
+DEC = 0b01100110
+CMP = 0b10100111
+AND = 0b10101000
+NOT = 0b01101001
+OR = 0b10101010
+XOR = 0b10101011
+SHL = 0b10101100
+SHR = 0b10101101
+
+# PC mutators
+CALL = 0b01010000
+RET = 0b00010001
+INT = 0b01010010
+IRET = 0b00010011
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
+JGT = 0b01010111
+JLT = 0b01011000
+JLE = 0b01011001
+JGE = 0b01011010
+
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        # 256 bytes of memory, 8 general-purpose registers, 1 program counter
-        self.reg = [0] * 8
-        self.pc = 0
-        self.ram = [0] * 256
+        # `R0`-`R6` are cleared to `0`.
+        self.reg = [0] * 8  # 8 general-purpose registers
+        # `PC` and `FL` registers are cleared to `0`.
+        self.pc = 0  # the program counter
+        self.fl = 0  # The flags register
+        self.ram = [0] * 256  # 256 bytes of memory
+        # `R7` is set to `0xF4`.
+        self.reg[7] = 0xF4
 
-    def ram_read(self, addr):
-        if 0 < addr <= 256:
-            return self.ram[addr]
+    def ram_read(self, mar):
+        """
+        return value stored at memory address register
+        """
+        return self.ram[mar]
 
-    def ram_write(self, addr, val):
-        if 0 < addr <= 256:
-            self.ram[addr] = val
+    def ram_write(self, mar, mdr):
+        """
+        store memory data register at memory address register
+        """
+        self.ram[mar] = mdr
 
     def load(self):
         """Load a program into memory."""
@@ -70,4 +119,30 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        # It needs to read the memory address that's stored in register `PC`, and store
+        # that result in `IR`, the _Instruction Register_. This can just be a local
+        # variable in `run()`.
+        IR = self.pc
+        # LOOP
+        while True:
+            # READ
+            i = self.ram_read(IR)
+            a = self.ram_read(IR+1)
+            b = self.ram_read(IR+2)
+            # EVALUATE
+            if LDI == i:
+                # load b into register a
+                self.reg[a] = b
+                IR += 3
+            elif PRN == i:
+                # PRINT
+                print(self.reg[a])
+            if HLT in [i, a, b]:
+                # end ?
+                break
+
+
+if __name__ == "__main__":
+    cpu = CPU()
+    cpu.load()
+    cpu.run()
