@@ -12,7 +12,7 @@ ST = 0b10000100
 PUSH = 0b01000101
 POP = 0b01000110
 PRA = 0b01001000
-
+OTHER_OPS = [NOP, LDI, HLT, PRN, LD, ST, PUSH, POP, PRA]
 
 # ALU ops
 ADD = 0b10100000  # add
@@ -28,6 +28,11 @@ OR = 0b10101010  # |
 XOR = 0b10101011  # ^
 SHL = 0b10101100
 SHR = 0b10101101
+ALU_OP_LIST = [ADD, SUB, MUL, MOD, INC, DEC, CMP, AND, NOT, OR, XOR, SHL, SHR]
+ALU_OP_FUNC = [lambda a, b: b+a, lambda a, b: a-b, lambda a, b: b * a, lambda a: a+1,
+               lambda a: a-1, lambda a, b: b == a, lambda a, b: b & a, lambda a: a ^ 0b11111111,
+               lambda a, b: a | b, lambda a, b: b ^ a, lambda a, b: a << b, lambda a, b: a >> b]
+ALU_DISPATCH = dict(zip(ALU_OP_LIST, ALU_OP_FUNC))
 
 # PC mutators
 CALL = 0b01010000
@@ -41,6 +46,7 @@ JGT = 0b01010111
 JLT = 0b01011000
 JLE = 0b01011001
 JGE = 0b01011010
+MUTATORS_LIST = [CALL, RET, INT, IRET, JMP, JEQ, JNE, JGT, JLT, JLE, JGE]
 
 
 class CPU:
@@ -89,12 +95,16 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
-        if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
-        else:
+        try:
+            foo = ALU_DISPATCH[op]
+        except Exception:
             raise Exception("Unsupported ALU operation")
+        if reg_b is not None:
+            bar = foo(self.reg[reg_a], self.reg[reg_b])
+        else:
+            bar = foo(self.reg[reg_a])
+
+        return bar
 
     def trace(self):
         """
@@ -151,6 +161,10 @@ class CPU:
             elif PRN == i:
                 # PRINT
                 print(self.reg[a])
-            if HLT in [i, a, b]:
-                # end of program ?
+
+            if HLT == i:
                 break
+
+            if i in ALU_OP_LIST:
+                # store the result in register a
+                self.reg[a] = self.alu(i, a, b)
