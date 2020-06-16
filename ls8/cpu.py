@@ -75,20 +75,13 @@ class CPU:
         """
         self.ram[mar] = mdr
 
-    def load(self, program=None):
+    def load(self, program):
         """Load a program into memory."""
         address = 0
         # For now, we've just hardcoded a program:
         if program is None:
-            program = [
-                # From print8.ls8
-                0b10000010,  # LDI R0,8
-                0b00000000,
-                0b00001000,
-                0b01000111,  # PRN R0
-                0b00000000,
-                0b00000001,  # HLT
-            ]
+            print("no program specified")
+            return
         for instruction in program:
             self.ram[address] = instruction
             address += 1
