@@ -28,10 +28,10 @@ OR = 0b10101010  # |
 XOR = 0b10101011  # ^
 SHL = 0b10101100
 SHR = 0b10101101
-ALU_OP_LIST = [ADD, SUB, MUL, MOD, INC, DEC, CMP, AND, NOT, OR, XOR, SHL, SHR]
+ALU_OP_LIST = [ADD, SUB, MUL, INC, DEC, CMP, AND, NOT, OR, XOR, SHL, SHR, MOD]
 ALU_OP_FUNC = [lambda a, b: b+a, lambda a, b: a-b, lambda a, b: b * a, lambda a: a+1,
                lambda a: a-1, lambda a, b: b == a, lambda a, b: b & a, lambda a: a ^ 0b11111111,
-               lambda a, b: a | b, lambda a, b: b ^ a, lambda a, b: a << b, lambda a, b: a >> b]
+               lambda a, b: a | b, lambda a, b: b ^ a, lambda a, b: a << b, lambda a, b: a >> b, lambda a, b: a % b]
 ALU_DISPATCH = dict(zip(ALU_OP_LIST, ALU_OP_FUNC))
 
 # PC mutators
