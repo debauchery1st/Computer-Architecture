@@ -4,8 +4,7 @@ import sys
 
 
 NOP = 0b00000000  # NO OP
-# load "immediate", store a value in a register OR set this register to this value
-LDI = 0b10000010
+LDI = 0b10000010  # load "immediate", set/store value in register
 HLT = 0b00000001  # halt the CPU and exit the emulator
 PRN = 0b01000111  # print the numeric value stored in a register
 LD = 0b10000011
@@ -16,17 +15,17 @@ PRA = 0b01001000
 
 
 # ALU ops
-ADD = 0b10100000
-SUB = 0b10100001
-MUL = 0b10100010
-MOD = 0b10100100
-INC = 0b01100101
-DEC = 0b01100110
-CMP = 0b10100111
-AND = 0b10101000
-NOT = 0b01101001
-OR = 0b10101010
-XOR = 0b10101011
+ADD = 0b10100000  # add
+SUB = 0b10100001  # subtract
+MUL = 0b10100010  # multiply
+MOD = 0b10100100  # modulo
+INC = 0b01100101  # increment
+DEC = 0b01100110  # decrement
+CMP = 0b10100111  # compute
+AND = 0b10101000  # &
+NOT = 0b01101001  # !
+OR = 0b10101010  # |
+XOR = 0b10101011  # ^
 SHL = 0b10101100
 SHR = 0b10101101
 
@@ -70,20 +69,20 @@ class CPU:
         """
         self.ram[mar] = mdr
 
-    def load(self):
+    def load(self, program=None):
         """Load a program into memory."""
         address = 0
         # For now, we've just hardcoded a program:
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
-
+        if program is None:
+            program = [
+                # From print8.ls8
+                0b10000010,  # LDI R0,8
+                0b00000000,
+                0b00001000,
+                0b01000111,  # PRN R0
+                0b00000000,
+                0b00000001,  # HLT
+            ]
         for instruction in program:
             self.ram[address] = instruction
             address += 1
@@ -127,22 +126,31 @@ class CPU:
         while True:
             # READ
             i = self.ram_read(IR)
-            a = self.ram_read(IR+1)
-            b = self.ram_read(IR+2)
+            ops = (i & 0b11000000) >> 6
+            # check the last 2 bits and determine
+            # how many bytes to include with this instruction.
+            if ops == 2:
+                # read the next two bytes,
+                a = self.ram_read(IR+1)
+                b = self.ram_read(IR+2)
+                # increment the program counter by 3
+                IR += 3
+            elif ops == 1:
+                # read the next byte
+                a = self.ram_read(IR+1)
+                b = None
+                # increment the program counter by 2
+                IR += 2
+            else:
+                # only read instruction, increment by 1
+                IR += 1
             # EVALUATE
             if LDI == i:
                 # load b into register a
                 self.reg[a] = b
-                IR += 3
             elif PRN == i:
                 # PRINT
                 print(self.reg[a])
             if HLT in [i, a, b]:
-                # end ?
+                # end of program ?
                 break
-
-
-if __name__ == "__main__":
-    cpu = CPU()
-    cpu.load()
-    cpu.run()
