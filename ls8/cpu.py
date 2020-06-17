@@ -90,9 +90,8 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
         # print('maths')
-        try:
-            foo = ALU_DISPATCH[op]
-        except Exception:
+        foo = ALU_DISPATCH.get(op, None)
+        if foo is None:
             raise Exception("Unsupported ALU operation")
         if reg_b is not None:
             bar = foo(self.reg[reg_a], self.reg[reg_b])
