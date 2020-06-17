@@ -26,7 +26,7 @@ def main(program_file):
 def resolve_program():
     examples_dir = path.abspath(path.join(path.dirname(__file__), "examples"))
     program = sys.argv[1]
-    # program = "stack"  # for debugging
+    # program = "call"  # for debugging
     fname = f"{program.split('/')[-1].split('.')[0]}.ls8"
     program_file = path.join(examples_dir, fname)
     return program_file

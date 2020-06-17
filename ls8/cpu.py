@@ -119,20 +119,25 @@ class CPU:
 
         print()
 
-    def push(self, from_register):
+    def push_mdr(self, mdr):
         self.reg[SP] -= 1  # decrement the stack pointer
         mar = self.reg[SP]  # this is where we push to
-        mdr = self.reg[from_register]  # this is what we push
-        self.ram_write(mar, mdr)  # write to memory address
+        self.ram_write(mar, mdr)  # write to return address
 
-    def pop(self, to_register):
+    def pop_mdr(self):
         mar = self.reg[SP]  # get the stack pointer
         popped = self.ram_read(mar)  # read stack at position
-        # increment the stack pointer if possible
         if mar < 0xF4:
+            # increment the stack pointer when possible
             self.reg[SP] += 1
-        # store result in register
-        self.reg[to_register] = popped
+        return popped
+
+    def push_from_reg(self, from_register):
+        mdr = self.reg[from_register]  # this is what we push
+        self.push_mdr(mdr)
+
+    def pop_to_reg(self, to_register):
+        self.reg[to_register] = self.pop_mdr()
 
     def ldi_foo(self, a, b):
         # place value b into register a
@@ -145,7 +150,7 @@ class CPU:
         """ return function to be called """
         # first check the memory functions
         foo = dict(zip([LDI, PRN, PUSH, POP],
-                       [self.ldi_foo, self.print_foo, self.push, self.pop])).get(i, None)
+                       [self.ldi_foo, self.print_foo, self.push_from_reg, self.pop_to_reg])).get(i, None)
         if foo is None:
             # is it math then?
             arithmetic = ALU_DISPATCH.get(i, None)
@@ -192,4 +197,13 @@ class CPU:
             # EVALUATE
             if HLT == i:
                 break
-            self.dispatch(i, a, b)
+            if i == CALL:
+                # store return address on the call_stack
+                self.push_mdr(IR)
+                # move program counter to CALL-ing address
+                IR = self.reg[a]
+            elif i == RET:
+                # return from CALL
+                IR = self.pop_mdr()
+            else:
+                self.dispatch(i, a, b)
