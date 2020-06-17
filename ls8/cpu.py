@@ -12,7 +12,6 @@ ST = 0b10000100
 PUSH = 0b01000101
 POP = 0b01000110
 PRA = 0b01001000
-OTHER_OPS = [NOP, LDI, HLT, PRN, LD, ST, PUSH, POP, PRA]
 
 # ALU ops
 ADD = 0b10100000  # add
@@ -46,7 +45,9 @@ JGT = 0b01010111
 JLT = 0b01011000
 JLE = 0b01011001
 JGE = 0b01011010
-MUTATORS_LIST = [CALL, RET, INT, IRET, JMP, JEQ, JNE, JGT, JLT, JLE, JGE]
+MUTATORS = [CALL, RET, INT, IRET, JMP, JEQ, JNE, JGT, JLT, JLE, JGE]
+
+SP = 7
 
 
 class CPU:
@@ -61,7 +62,7 @@ class CPU:
         self.fl = 0  # The flags register
         self.ram = [0] * 256  # 256 bytes of memory
         # `R7` is set to `0xF4`.
-        self.reg[7] = 0xF4
+        self.reg[SP] = 0xF4
 
     def ram_read(self, mar):
         """
@@ -88,6 +89,7 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
+        # print('maths')
         try:
             foo = ALU_DISPATCH[op]
         except Exception:
@@ -96,7 +98,6 @@ class CPU:
             bar = foo(self.reg[reg_a], self.reg[reg_b])
         else:
             bar = foo(self.reg[reg_a])
-
         return bar
 
     def trace(self):
@@ -118,6 +119,48 @@ class CPU:
             print(" %02X" % self.reg[i], end='')
 
         print()
+
+    def push(self, from_register):
+        self.reg[SP] -= 1  # decrement the stack pointer
+        mar = self.reg[SP]  # this is where we push to
+        mdr = self.reg[from_register]  # this is what we push
+        self.ram_write(mar, mdr)  # write to memory address
+
+    def pop(self, to_register):
+        mar = self.reg[SP]  # get the stack pointer
+        popped = self.ram_read(mar)  # read stack at position
+        # increment the stack pointer if possible
+        if mar < 0xF4:
+            self.reg[SP] += 1
+        # store result in register
+        self.reg[to_register] = popped
+
+    def ldi_foo(self, a, b):
+        # place value b into register a
+        self.reg[a] = b
+
+    def print_foo(self, a):
+        print(self.reg[a])
+
+    def dispatch(self, i, a, b):
+        """ return function to be called """
+        # first check the memory functions
+        foo = dict(zip([LDI, PRN, PUSH, POP],
+                       [self.ldi_foo, self.print_foo, self.push, self.pop])).get(i, None)
+        if foo is None:
+            # is it math then?
+            arithmetic = ALU_DISPATCH.get(i, None)
+            if arithmetic is not None:
+                # store the result in register a
+                self.reg[a] = self.alu(i, a, b)
+                return
+        else:
+            if b is not None:
+                foo(a, b)
+            elif a is not None:
+                foo(a)
+            else:
+                foo()
 
     def run(self):
         """Run the CPU."""
@@ -148,16 +191,6 @@ class CPU:
                 # only read instruction, increment by 1
                 IR += 1
             # EVALUATE
-            if LDI == i:
-                # load b into register a
-                self.reg[a] = b
-            elif PRN == i:
-                # PRINT
-                print(self.reg[a])
-
             if HLT == i:
                 break
-
-            if i in ALU_OP_LIST:
-                # store the result in register a
-                self.reg[a] = self.alu(i, a, b)
+            self.dispatch(i, a, b)
